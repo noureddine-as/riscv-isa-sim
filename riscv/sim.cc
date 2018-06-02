@@ -74,6 +74,44 @@ void sim_thread_main(void* arg)
   ((sim_t*)arg)->main();
 }
 
+reg_t sim_t::my_get_mem(uint32_t addr)
+{
+  reg_t val;
+  // if(args.size() != 1 && args.size() != 2)
+  //   throw trap_interactive();
+
+  // std::string addr_str = args[0];
+  mmu_t* mmu = debug_mmu;
+  // if(args.size() == 2)
+  // {
+  //   processor_t *p = get_core(args[0]);
+  //   mmu = p->get_mmu();
+  //   addr_str = args[1];
+  // }
+
+  // reg_t addr = strtol(addr_str.c_str(),NULL,16), val;
+  // if(addr == LONG_MAX)
+  //   addr = strtoul(addr_str.c_str(),NULL,16);
+
+  switch(addr % 8)
+  {
+    case 0:
+      val = mmu->load_uint64(addr);
+      break;
+    case 4:
+      val = mmu->load_uint32(addr);
+      break;
+    case 2:
+    case 6:
+      val = mmu->load_uint16(addr);
+      break;
+    default:
+      val = mmu->load_uint8(addr);
+      break;
+  }
+  return val;
+}
+
 void sim_t::main()
 {
   if (!debug && log)
@@ -88,8 +126,12 @@ void sim_t::main()
     if (remote_bitbang) {
       remote_bitbang->tick();
     }
+    if (monitor){
+      printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+    }
   }
 }
+
 
 int sim_t::run()
 {
@@ -130,9 +172,10 @@ void sim_t::set_log(bool value)
   log = value;
 }
 
-void sim_t::set_monitor(bool value)
+void sim_t::set_monitor(bool value, uint32_t base_address)
 {
   monitor = value;
+  monitor_base = base_address;
 }
 
 void sim_t::set_histogram(bool value)

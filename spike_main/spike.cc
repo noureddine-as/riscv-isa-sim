@@ -177,9 +177,9 @@ int main(int argc, char** argv)
   s.set_log(log);
   s.set_histogram(histogram);
 
+  s.set_monitor(monitor, monitor_base);
   if(monitor)
     printf("Monitoring activated in base address 0x%x \n", monitor_base);
 
-  s.set_monitor(monitor);
   return s.run();
 }

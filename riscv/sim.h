@@ -35,7 +35,7 @@ public:
   void set_remote_bitbang(remote_bitbang_t* remote_bitbang) {
     this->remote_bitbang = remote_bitbang;
   }
-  void set_monitor(bool value);
+  void set_monitor(bool value, uint32_t base_address);
   const char* get_dts() { if (dts.empty()) reset(); return dts.c_str(); }
   processor_t* get_core(size_t i) { return procs.at(i); }
   unsigned nprocs() const { return procs.size(); }
@@ -64,7 +64,7 @@ private:
   bool log;
   bool histogram_enabled; // provide a histogram of PCs
   remote_bitbang_t* remote_bitbang;
-  bool monitor;
+  bool monitor; uint32_t monitor_base;
 
   // memory-mapped I/O routines
   char* addr_to_mem(reg_t addr);
@@ -92,6 +92,7 @@ private:
   reg_t get_reg(const std::vector<std::string>& args);
   freg_t get_freg(const std::vector<std::string>& args);
   reg_t get_mem(const std::vector<std::string>& args);
+  reg_t my_get_mem(uint32_t addr);
   reg_t get_pc(const std::vector<std::string>& args);
 
   friend class processor_t;
