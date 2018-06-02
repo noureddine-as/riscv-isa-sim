@@ -13,6 +13,25 @@
 #include <string>
 #include <memory>
 
+
+#define USE_OPENCV  1
+#if (USE_OPENCV)
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp"
+
+
+void test_opencv()
+{
+  cv::Mat src_image;
+  cv::imread("/home/noureddine-as/CLionProjects/spike-monitor-opencv/cmake-build-debug/ice_age_256x144_411.mjpeg",
+           cv::IMREAD_COLOR).copyTo(src_image);;// takes ~90ms
+  //cv::cvtColor(src_image, src_image, CV_BGR2GRAY);
+  imshow("Source", src_image);
+  cv::waitKey(0);
+}
+#endif
+
 static void help()
 {
   fprintf(stderr, "usage: spike [host options] <target program> [target options]\n");
@@ -40,6 +59,12 @@ static void help()
   fprintf(stderr, "  --debug-sba=<bits>    Debug bus master supports up to "
       "<bits> wide accesses [default 0]\n");
   fprintf(stderr, "  --debug-auth          Debug module requires debugger to authenticate\n");
+  fprintf(stderr, "  --monitor=<base_addr> Monitors the program beginning from base_addr\n");
+
+  #if (USE_OPENCV)
+    test_opencv();
+  #endif
+
   exit(1);
 }
 
@@ -178,8 +203,9 @@ int main(int argc, char** argv)
   s.set_histogram(histogram);
 
   s.set_monitor(monitor, monitor_base);
-  if(monitor)
+  if(monitor){
     printf("Monitoring activated in base address 0x%x \n", monitor_base);
+  }
 
   return s.run();
 }
