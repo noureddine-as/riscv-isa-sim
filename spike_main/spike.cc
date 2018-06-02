@@ -80,6 +80,7 @@ int main(int argc, char** argv)
   bool halted = false;
   bool histogram = false;
   bool log = false;
+  bool monitor = false; uint32_t monitor_base; 
   bool dump_dts = false;
   size_t nprocs = 1;
   reg_t start_pc = reg_t(-1);
@@ -139,6 +140,7 @@ int main(int argc, char** argv)
       [&](const char* s){max_bus_master_bits = atoi(s);});
   parser.option(0, "debug-auth", 0,
       [&](const char* s){require_authentication = true;});
+  parser.option(0, "monitor", 1, [&](const char* s){monitor = true; monitor_base = strtol(s, NULL, 0);});; //atoi(s);});
 
   auto argv1 = parser.parse(argv);
   std::vector<std::string> htif_args(argv1, (const char*const*)argv + argc);
@@ -174,5 +176,10 @@ int main(int argc, char** argv)
   s.set_debug(debug);
   s.set_log(log);
   s.set_histogram(histogram);
+
+  if(monitor)
+    printf("Monitoring activated in base address 0x%llx", monitor_base);
+
+  s.set_monitor(monitor);
   return s.run();
 }

@@ -35,6 +35,7 @@ public:
   void set_remote_bitbang(remote_bitbang_t* remote_bitbang) {
     this->remote_bitbang = remote_bitbang;
   }
+  void set_monitor(bool value);
   const char* get_dts() { if (dts.empty()) reset(); return dts.c_str(); }
   processor_t* get_core(size_t i) { return procs.at(i); }
   unsigned nprocs() const { return procs.size(); }
@@ -63,6 +64,7 @@ private:
   bool log;
   bool histogram_enabled; // provide a histogram of PCs
   remote_bitbang_t* remote_bitbang;
+  bool monitor;
 
   // memory-mapped I/O routines
   char* addr_to_mem(reg_t addr);

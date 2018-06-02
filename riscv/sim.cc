@@ -130,6 +130,11 @@ void sim_t::set_log(bool value)
   log = value;
 }
 
+void sim_t::set_monitor(bool value)
+{
+  monitor = value;
+}
+
 void sim_t::set_histogram(bool value)
 {
   histogram_enabled = value;
