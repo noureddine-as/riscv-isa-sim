@@ -112,6 +112,73 @@ reg_t sim_t::my_get_mem(uint32_t addr)
   return val;
 }
 
+#define USE_OPENCV 1
+#if (USE_OPENCV)
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp"
+
+#define COLS    256
+#define ROWS    144
+#define DIM     1
+
+cv::Mat preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);;
+bool first_time = true;
+void sim_t::show_monitor(uint32_t base)
+{
+  //static  = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
+  // if(!first_time){
+  //     preview_image.release();
+  //    preview_image.create(ROWS, COLS,CV_8UC1);
+  //     first_time = false;
+  // }
+
+  mmu_t* mmu = debug_mmu;
+  reg_t val;
+  uint32_t pt_app_status = base;
+  uint32_t pt_spike_status = base+1;
+  uint32_t pt_n_rows = base+2;
+  uint32_t pt_n_cols = base+4;
+  uint32_t pt_n_channels = base+6;
+  uint32_t pt_data = base+7;
+
+  uint8_t app_status = mmu->load_uint8(pt_app_status);
+  uint8_t spike_status = mmu->load_uint8(pt_spike_status);
+  uint32_t n_rows = mmu->load_uint16(pt_n_rows);
+  uint32_t n_cols = mmu->load_uint16(pt_n_cols);
+  uint32_t n_channels = mmu->load_uint8(pt_n_channels);
+  uint32_t data = mmu->load_uint8(pt_data);
+
+
+  printf("app_status   = %d \n", app_status);
+  printf("spike_status = %d \n", spike_status);
+  printf("n_rows       = %d \n", n_rows);
+  printf("n_cols       = %d \n", n_cols);
+  printf("n_channels   = %d \n", n_channels);
+  printf("data         = 0x%lx \n", data);
+
+  // // Create image and push values
+
+  // // push values
+  for(int i = 0; i < n_rows; i++){
+    for (int j = 0; j < n_cols; j++) {
+  //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
+       preview_image.at<uchar>(i, j) = mmu->load_uint8(pt_data + (i*n_cols + j));
+      printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
+    }
+  }
+  // // Show image
+  cv::imshow("Spike Monitor", preview_image);
+  while(cv::waitKey(1) != 'q')
+      ;
+    cv::destroyWindow("Spike Monitor");
+
+  // //cv::destroyAllWindows();
+
+}
+
+#endif
+
 void sim_t::main()
 {
   if (!debug && log)
@@ -127,7 +194,10 @@ void sim_t::main()
       remote_bitbang->tick();
     }
     if (monitor){
-      printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+      #if (USE_OPENCV)
+        show_monitor(monitor_base);
+      #endif
+      // printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
     }
   }
 }

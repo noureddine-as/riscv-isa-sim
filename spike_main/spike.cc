@@ -203,9 +203,9 @@ int main(int argc, char** argv)
   s.set_histogram(histogram);
 
   s.set_monitor(monitor, monitor_base);
-  if(monitor){
-    printf("Monitoring activated in base address 0x%x \n", monitor_base);
-  }
+  if (monitor){
+    printf("------ [ START ] ------ >>>  Monitoring 0x%x \n", monitor_base);
+  }  
 
   return s.run();
 }

@@ -92,8 +92,11 @@ private:
   reg_t get_reg(const std::vector<std::string>& args);
   freg_t get_freg(const std::vector<std::string>& args);
   reg_t get_mem(const std::vector<std::string>& args);
-  reg_t my_get_mem(uint32_t addr);
   reg_t get_pc(const std::vector<std::string>& args);
+
+  // Visual-Spike
+  reg_t my_get_mem(uint32_t addr);
+  void show_monitor(uint32_t base);
 
   friend class processor_t;
   friend class mmu_t;
