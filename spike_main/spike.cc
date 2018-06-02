@@ -140,7 +140,7 @@ int main(int argc, char** argv)
       [&](const char* s){max_bus_master_bits = atoi(s);});
   parser.option(0, "debug-auth", 0,
       [&](const char* s){require_authentication = true;});
-  parser.option(0, "monitor", 1, [&](const char* s){monitor = true; monitor_base = strtol(s, NULL, 0);});; //atoi(s);});
+  parser.option(0, "monitor", 1, [&](const char* s){monitor = true; monitor_base = strtoul(s, NULL, 0);});; //atoi(s);});
 
   auto argv1 = parser.parse(argv);
   std::vector<std::string> htif_args(argv1, (const char*const*)argv + argc);
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
   s.set_histogram(histogram);
 
   if(monitor)
-    printf("Monitoring activated in base address 0x%llx", monitor_base);
+    printf("Monitoring activated in base address 0x%x \n", monitor_base);
 
   s.set_monitor(monitor);
   return s.run();
