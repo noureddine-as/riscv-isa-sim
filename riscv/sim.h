@@ -97,6 +97,8 @@ private:
   // Visual-Spike
   reg_t my_get_mem(uint32_t addr);
   void show_monitor(uint32_t base);
+  void show_monitor_d(const std::string& cmd, const std::vector<std::string>& args);
+
 
   friend class processor_t;
   friend class mmu_t;

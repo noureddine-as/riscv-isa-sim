@@ -122,17 +122,9 @@ reg_t sim_t::my_get_mem(uint32_t addr)
 #define ROWS    144
 #define DIM     1
 
-cv::Mat preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);;
-bool first_time = true;
+cv::Mat preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
 void sim_t::show_monitor(uint32_t base)
 {
-  //static  = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
-  // if(!first_time){
-  //     preview_image.release();
-  //    preview_image.create(ROWS, COLS,CV_8UC1);
-  //     first_time = false;
-  // }
-
   mmu_t* mmu = debug_mmu;
   reg_t val;
   uint32_t pt_app_status = base;
@@ -159,22 +151,62 @@ void sim_t::show_monitor(uint32_t base)
 
   // // Create image and push values
 
-  // // push values
-  for(int i = 0; i < n_rows; i++){
-    for (int j = 0; j < n_cols; j++) {
-  //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
-       preview_image.at<uchar>(i, j) = mmu->load_uint8(pt_data + (i*n_cols + j));
-      printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
+
+    for(int i = 0; i < n_rows; i++){
+      for (int j = 0; j < n_cols; j++) {
+    //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
+          uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
+         preview_image.at<uchar>(i, j) = x;
+        //printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
+      }
     }
-  }
-  // // Show image
-  cv::imshow("Spike Monitor", preview_image);
-  while(cv::waitKey(1) != 'q')
-      ;
-    cv::destroyWindow("Spike Monitor");
 
-  // //cv::destroyAllWindows();
+    cv::imshow("Spike monitor", preview_image);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+}
 
+void sim_t::show_monitor_d(const std::string& cmd, const std::vector<std::string>& args)
+{
+  // mmu_t* mmu = debug_mmu;
+  // fprintf(stderr, "Hello, World!  0x%016" PRIx64 "\n", mmu->load_uint64(monitor_base));   
+  mmu_t* mmu = debug_mmu;
+  reg_t val;
+  uint32_t base = monitor_base;
+  uint32_t pt_app_status = base;
+  uint32_t pt_spike_status = base+1;
+  uint32_t pt_n_rows = base+2;
+  uint32_t pt_n_cols = base+4;
+  uint32_t pt_n_channels = base+6;
+  uint32_t pt_data = base+7;
+
+  uint8_t app_status = mmu->load_uint8(pt_app_status);
+  uint8_t spike_status = mmu->load_uint8(pt_spike_status);
+  uint32_t n_rows = mmu->load_uint16(pt_n_rows);
+  uint32_t n_cols = mmu->load_uint16(pt_n_cols);
+  uint32_t n_channels = mmu->load_uint8(pt_n_channels);
+  uint32_t data = mmu->load_uint8(pt_data);
+
+
+  fprintf(stderr, "app_status   = %d \n", app_status);
+  fprintf(stderr, "spike_status = %d \n", spike_status);
+  fprintf(stderr, "n_rows       = %d \n", n_rows);
+  fprintf(stderr, "n_cols       = %d \n", n_cols);
+  fprintf(stderr, "n_channels   = %d \n", n_channels);
+  fprintf(stderr, "data         = 0x%lx \n", data);
+
+
+
+    for(int i = 0; i < n_rows; i++){
+      for (int j = 0; j < n_cols; j++) {
+          uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
+         preview_image.at<uchar>(i, j) = x;
+      }
+    }
+
+    cv::imshow("Spike monitor", preview_image);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
 }
 
 #endif
@@ -193,12 +225,12 @@ void sim_t::main()
     if (remote_bitbang) {
       remote_bitbang->tick();
     }
-    if (monitor){
-      #if (USE_OPENCV)
-        show_monitor(monitor_base);
-      #endif
-      // printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
-    }
+    // if (monitor){
+    //   #if (USE_OPENCV)
+    //     show_monitor(monitor_base);
+    //   #endif
+    //   // printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+    // }
   }
 }
 
@@ -245,7 +277,10 @@ void sim_t::set_log(bool value)
 void sim_t::set_monitor(bool value, uint32_t base_address)
 {
   monitor = value;
-  monitor_base = base_address;
+  if(base_address == -1)
+    monitor_base = 0x81000000;
+  else
+    monitor_base = base_address;
 }
 
 void sim_t::set_histogram(bool value)

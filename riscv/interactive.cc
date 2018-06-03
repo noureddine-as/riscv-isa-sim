@@ -79,6 +79,8 @@ void sim_t::interactive()
   funcs["q"] = funcs["quit"];
   funcs["help"] = &sim_t::interactive_help;
   funcs["h"] = funcs["help"];
+  funcs["monitor"] = &sim_t::show_monitor_d;
+
 
   while (!done())
   {

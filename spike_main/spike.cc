@@ -105,7 +105,7 @@ int main(int argc, char** argv)
   bool halted = false;
   bool histogram = false;
   bool log = false;
-  bool monitor = false; uint32_t monitor_base; 
+  bool monitor = false; uint32_t monitor_base = -1; 
   bool dump_dts = false;
   size_t nprocs = 1;
   reg_t start_pc = reg_t(-1);
