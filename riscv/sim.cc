@@ -15,6 +15,17 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+#define USE_OPENCV 1
+#if (USE_OPENCV)
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp"
+
+#define COLS    256
+#define ROWS    144
+#define DIM     1
+#define IMSHOW_TIMEOUT  1000
+
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
 {
@@ -112,21 +123,15 @@ reg_t sim_t::my_get_mem(uint32_t addr)
   return val;
 }
 
-#define USE_OPENCV 1
-#if (USE_OPENCV)
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
 
-#define COLS    256
-#define ROWS    144
-#define DIM     1
 
-cv::Mat preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
-void sim_t::show_monitor(uint32_t base)
+void sim_t::show_monitor(uint32_t base, bool verbose)
 {
+  cv::Mat new_preview_image(cv::Size(COLS, ROWS), CV_8UC1, cv::Scalar(0,0,0));
+  // cv::Mat new_preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
   mmu_t* mmu = debug_mmu;
   reg_t val;
+
   uint32_t pt_app_status = base;
   uint32_t pt_spike_status = base+1;
   uint32_t pt_n_rows = base+2;
@@ -141,35 +146,41 @@ void sim_t::show_monitor(uint32_t base)
   uint32_t n_channels = mmu->load_uint8(pt_n_channels);
   uint32_t data = mmu->load_uint8(pt_data);
 
-
-  printf("app_status   = %d \n", app_status);
-  printf("spike_status = %d \n", spike_status);
-  printf("n_rows       = %d \n", n_rows);
-  printf("n_cols       = %d \n", n_cols);
-  printf("n_channels   = %d \n", n_channels);
-  printf("data         = 0x%lx \n", data);
-
-  // // Create image and push values
-
-
-    for(int i = 0; i < n_rows; i++){
-      for (int j = 0; j < n_cols; j++) {
-    //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
-          uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
-         preview_image.at<uchar>(i, j) = x;
-        //printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
-      }
+  if(verbose)
+  {
+    printf("[INFO] ------------------------------------\n"
+           "[INFO] >> At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+    printf("[INFO] app_status   = %d \n", app_status);
+    printf("[INFO] spike_status = %d \n", spike_status);
+    printf("[INFO] n_rows       = %d \n", n_rows);
+    printf("[INFO] n_cols       = %d \n", n_cols);
+    printf("[INFO] n_channels   = %d \n", n_channels);
+    printf("[INFO] data         = 0x%ux \n", data);
+  }
+  // Create image and push values
+  for(unsigned int i = 0; i < n_rows; i++){
+    for (unsigned int j = 0; j < n_cols; j++) {
+  //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
+        uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
+       new_preview_image.at<uchar>(i, j) = x;
+      //printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
     }
+  }
 
-    cv::imshow("Spike monitor", preview_image);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+  //new_preview_image.copyTo(preview_image);
+  cv::imshow("monitor", new_preview_image);
+  cv::waitKey(IMSHOW_TIMEOUT);
+  cv::destroyWindow("monitor");
 }
 
-void sim_t::show_monitor_d(const std::string& cmd, const std::vector<std::string>& args)
+void sim_t::interactive_show_monitor(const std::string& cmd, const std::vector<std::string>& args)
 {
+  // cv::Mat new_preview_image(cv::Size(COLS, ROWS), CV_8UC1, cv::Scalar(0,0,0));
+
+  cv::Mat new_preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
   // mmu_t* mmu = debug_mmu;
   // fprintf(stderr, "Hello, World!  0x%016" PRIx64 "\n", mmu->load_uint64(monitor_base));   
+  //cv::Mat preview_image(cv::Size(COLS, ROWS), CV_8UC1, cv::Scalar(0,0,0));
   mmu_t* mmu = debug_mmu;
   reg_t val;
   uint32_t base = monitor_base;
@@ -187,32 +198,34 @@ void sim_t::show_monitor_d(const std::string& cmd, const std::vector<std::string
   uint32_t n_channels = mmu->load_uint8(pt_n_channels);
   uint32_t data = mmu->load_uint8(pt_data);
 
+  
+  fprintf(stderr, "[INFO] ------------------------------------\n"
+                  "[INFO] >> At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+  fprintf(stderr, "[INFO] app_status   = %d \n", app_status);
+  fprintf(stderr, "[INFO] spike_status = %d \n", spike_status);
+  fprintf(stderr, "[INFO] n_rows       = %d \n", n_rows);
+  fprintf(stderr, "[INFO] n_cols       = %d \n", n_cols);
+  fprintf(stderr, "[INFO] n_channels   = %d \n", n_channels);
+  fprintf(stderr, "[INFO] data         = 0x%ux \n", data);
 
-  fprintf(stderr, "app_status   = %d \n", app_status);
-  fprintf(stderr, "spike_status = %d \n", spike_status);
-  fprintf(stderr, "n_rows       = %d \n", n_rows);
-  fprintf(stderr, "n_cols       = %d \n", n_cols);
-  fprintf(stderr, "n_channels   = %d \n", n_channels);
-  fprintf(stderr, "data         = 0x%lx \n", data);
-
-
-
-    for(int i = 0; i < n_rows; i++){
-      for (int j = 0; j < n_cols; j++) {
-          uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
-         preview_image.at<uchar>(i, j) = x;
-      }
+  for(unsigned int i = 0; i < n_rows; i++){
+    for (unsigned int j = 0; j < n_cols; j++) {
+        uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
+       new_preview_image.at<uchar>(i, j) = x;
     }
+  }
 
-    cv::imshow("Spike monitor", preview_image);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+  cv::imshow("monitor_d", new_preview_image);
+  cv::waitKey(0);
+  cv::destroyWindow("monitor_d");
 }
 
 #endif
 
 void sim_t::main()
 {
+  bool monitor_verbose = true;
+
   if (!debug && log)
     set_procs_debug(true);
 
@@ -225,12 +238,10 @@ void sim_t::main()
     if (remote_bitbang) {
       remote_bitbang->tick();
     }
-    // if (monitor){
-    //   #if (USE_OPENCV)
-    //     show_monitor(monitor_base);
-    //   #endif
-    //   // printf("-------------------->>>  At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
-    // }
+    if (monitor){
+      show_monitor(monitor_base, monitor_verbose);
+      monitor_verbose = false;
+    }  
   }
 }
 
@@ -276,11 +287,17 @@ void sim_t::set_log(bool value)
 
 void sim_t::set_monitor(bool value, uint32_t base_address)
 {
-  monitor = value;
-  if(base_address == -1)
-    monitor_base = 0x81000000;
-  else
-    monitor_base = base_address;
+  // monitor = value;
+  if(monitor){
+    if(base_address < 0x80000000)
+      monitor_base = 0x81000000;
+    else
+      monitor_base = base_address;
+
+    printf("[INFO] >> Monitoring 0x%x \n", monitor_base);
+
+    garbage = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
+  }
 }
 
 void sim_t::set_histogram(bool value)

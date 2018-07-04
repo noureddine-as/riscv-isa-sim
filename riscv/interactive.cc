@@ -79,7 +79,7 @@ void sim_t::interactive()
   funcs["q"] = funcs["quit"];
   funcs["help"] = &sim_t::interactive_help;
   funcs["h"] = funcs["help"];
-  funcs["monitor"] = &sim_t::show_monitor_d;
+  funcs["monitor"] = &sim_t::interactive_show_monitor;
 
 
   while (!done())
@@ -136,6 +136,7 @@ void sim_t::interactive_help(const std::string& cmd, const std::vector<std::stri
     "q                                 Alias for quit\n"
     "help                            # This screen!\n"
     "h                                 Alias for help\n"
+    "monitor                         # Displays the monitor of .monitor section.\n"
     "Note: Hitting enter is the same as: run 1\n"
     << std::flush;
 }

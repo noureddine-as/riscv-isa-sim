@@ -27,7 +27,7 @@ void test_opencv()
   cv::imread("/home/noureddine-as/CLionProjects/spike-monitor-opencv/cmake-build-debug/ice_age_256x144_411.mjpeg",
            cv::IMREAD_COLOR).copyTo(src_image);;// takes ~90ms
   //cv::cvtColor(src_image, src_image, CV_BGR2GRAY);
-  imshow("Source", src_image);
+  cv::imshow("monitor", src_image);
   cv::waitKey(0);
 }
 #endif
@@ -59,7 +59,8 @@ static void help()
   fprintf(stderr, "  --debug-sba=<bits>    Debug bus master supports up to "
       "<bits> wide accesses [default 0]\n");
   fprintf(stderr, "  --debug-auth          Debug module requires debugger to authenticate\n");
-  fprintf(stderr, "  --monitor=<base_addr> Monitors the program beginning from base_addr\n");
+  fprintf(stderr, "  --monitor=<base_addr> Monitors the program beginning from base_addr\n"
+                  "                        This should be written in Hexa. (e.g. 0x81000000)");
 
   #if (USE_OPENCV)
     test_opencv();
@@ -202,12 +203,10 @@ int main(int argc, char** argv)
   s.set_log(log);
   s.set_histogram(histogram);
 
-  #define DEFAULT_MONITOR_BASE  0x81000000
-  monitor_base = (monitor_base & 0x80000000 ? monitor_base :  DEFAULT_MONITOR_BASE);
+  //#define DEFAULT_MONITOR_BASE  0x81000000
+  //monitor_base = (monitor_base & 0x80000000 ? monitor_base :  DEFAULT_MONITOR_BASE);
   s.set_monitor(monitor, monitor_base);
-  if (monitor){
-    printf("------ [ START ] ------ >>>  Monitoring 0x%x \n", monitor_base);
-  }  
+ 
 
   return s.run();
 }

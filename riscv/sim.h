@@ -13,6 +13,15 @@
 #include <string>
 #include <memory>
 
+#define USE_OPENCV 1
+#if (USE_OPENCV)
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp"
+
+#endif
+
+
 class mmu_t;
 class remote_bitbang_t;
 
@@ -95,10 +104,11 @@ private:
   reg_t get_pc(const std::vector<std::string>& args);
 
   // Visual-Spike
-  reg_t my_get_mem(uint32_t addr);
-  void show_monitor(uint32_t base);
-  void show_monitor_d(const std::string& cmd, const std::vector<std::string>& args);
+  cv::Mat garbage; // TO DO: clean-up this, without it we get Segmentation faults :(
 
+  reg_t my_get_mem(uint32_t addr);
+  void  show_monitor(uint32_t, bool);
+  void interactive_show_monitor(const std::string& cmd, const std::vector<std::string>& args);
 
   friend class processor_t;
   friend class mmu_t;
