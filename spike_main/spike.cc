@@ -202,6 +202,8 @@ int main(int argc, char** argv)
   s.set_log(log);
   s.set_histogram(histogram);
 
+  #define DEFAULT_MONITOR_BASE  0x81000000
+  monitor_base = (monitor_base & 0x80000000 ? monitor_base :  DEFAULT_MONITOR_BASE);
   s.set_monitor(monitor, monitor_base);
   if (monitor){
     printf("------ [ START ] ------ >>>  Monitoring 0x%x \n", monitor_base);
