@@ -104,7 +104,7 @@ private:
   reg_t get_pc(const std::vector<std::string>& args);
 
   // Visual-Spike
-  cv::Mat garbage; // TO DO: clean-up this, without it we get Segmentation faults :(
+  cv::Mat spike_monitor, garbage; // TO DO: clean-up this, without it we get Segmentation faults :(
 
   reg_t my_get_mem(uint32_t addr);
   void  show_monitor(uint32_t, bool);

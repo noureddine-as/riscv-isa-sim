@@ -24,7 +24,7 @@
 #define COLS    256
 #define ROWS    144
 #define DIM     1
-#define IMSHOW_TIMEOUT  1000
+#define IMSHOW_TIMEOUT  10
 
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
@@ -128,7 +128,6 @@ reg_t sim_t::my_get_mem(uint32_t addr)
 void sim_t::show_monitor(uint32_t base, bool verbose)
 {
   cv::Mat new_preview_image(cv::Size(COLS, ROWS), CV_8UC1, cv::Scalar(0,0,0));
-  // cv::Mat new_preview_image = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
   mmu_t* mmu = debug_mmu;
   reg_t val;
 
@@ -160,17 +159,12 @@ void sim_t::show_monitor(uint32_t base, bool verbose)
   // Create image and push values
   for(unsigned int i = 0; i < n_rows; i++){
     for (unsigned int j = 0; j < n_cols; j++) {
-  //     //preview_image.at<uchar>(i , j) = mmu->load_uint8(pt_data + i*n_rows + j); //memory[i][j][0];
-        uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
-       new_preview_image.at<uchar>(i, j) = x;
-      //printf("Element [%d][%d] = 0x%2X \n", i, j, mmu->load_uint8(pt_data + (i*n_cols + j))); //memory[i][j][0];
+      uint8_t x = 0xFF & mmu->load_uint8(pt_data + (i*n_cols + j));
+      new_preview_image.at<uchar>(i, j) = x;
     }
   }
-
-  //new_preview_image.copyTo(preview_image);
   cv::imshow("monitor", new_preview_image);
   cv::waitKey(IMSHOW_TIMEOUT);
-  cv::destroyWindow("monitor");
 }
 
 void sim_t::interactive_show_monitor(const std::string& cmd, const std::vector<std::string>& args)
