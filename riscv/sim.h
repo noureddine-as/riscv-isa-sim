@@ -18,7 +18,7 @@
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
-
+#include "cvplot.h"
 #endif
 
 
@@ -44,7 +44,11 @@ public:
   void set_remote_bitbang(remote_bitbang_t* remote_bitbang) {
     this->remote_bitbang = remote_bitbang;
   }
+
+  /*   ADDED FOR MONITORING    */
   void set_monitor(bool value, uint32_t base_address);
+  void set_oscillo(bool value, uint32_t base_address);
+
   const char* get_dts() { if (dts.empty()) reset(); return dts.c_str(); }
   processor_t* get_core(size_t i) { return procs.at(i); }
   unsigned nprocs() const { return procs.size(); }
@@ -73,7 +77,6 @@ private:
   bool log;
   bool histogram_enabled; // provide a histogram of PCs
   remote_bitbang_t* remote_bitbang;
-  bool monitor; uint32_t monitor_base;
 
   // memory-mapped I/O routines
   char* addr_to_mem(reg_t addr);
@@ -104,10 +107,15 @@ private:
   reg_t get_pc(const std::vector<std::string>& args);
 
   // Visual-Spike
+  /*   ADDED FOR MONITORING    */
+  bool monitor; uint32_t monitor_base;
+  bool oscillo; uint32_t oscillo_base;
+
   cv::Mat spike_monitor, garbage; // TO DO: clean-up this, without it we get Segmentation faults :(
 
   reg_t my_get_mem(uint32_t addr);
   void  show_monitor(uint32_t, bool);
+  void  show_oscillo(uint32_t, bool);
   void interactive_show_monitor(const std::string& cmd, const std::vector<std::string>& args);
 
   friend class processor_t;

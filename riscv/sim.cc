@@ -15,16 +15,18 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#define USE_OPENCV 1
-#if (USE_OPENCV)
+// #define USE_OPENCV 1
+// #if (USE_OPENCV)
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
+#include "cvplot.h"
 
 #define COLS    256
 #define ROWS    144
 #define DIM     1
 #define IMSHOW_TIMEOUT  10
+#define OSCILLO_TIMEOUT  10
 
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
@@ -88,21 +90,7 @@ void sim_thread_main(void* arg)
 reg_t sim_t::my_get_mem(uint32_t addr)
 {
   reg_t val;
-  // if(args.size() != 1 && args.size() != 2)
-  //   throw trap_interactive();
-
-  // std::string addr_str = args[0];
   mmu_t* mmu = debug_mmu;
-  // if(args.size() == 2)
-  // {
-  //   processor_t *p = get_core(args[0]);
-  //   mmu = p->get_mmu();
-  //   addr_str = args[1];
-  // }
-
-  // reg_t addr = strtol(addr_str.c_str(),NULL,16), val;
-  // if(addr == LONG_MAX)
-  //   addr = strtoul(addr_str.c_str(),NULL,16);
 
   switch(addr % 8)
   {
@@ -122,8 +110,6 @@ reg_t sim_t::my_get_mem(uint32_t addr)
   }
   return val;
 }
-
-
 
 void sim_t::show_monitor(uint32_t base, bool verbose)
 {
@@ -148,13 +134,14 @@ void sim_t::show_monitor(uint32_t base, bool verbose)
   if(verbose)
   {
     printf("[INFO] ------------------------------------\n"
-           "[INFO] >> At 0x%x = 0x%lx \n", monitor_base, my_get_mem(monitor_base));
+           "[INFO] >> At 0x%x = 0x%lx \n", base, my_get_mem(base));
     printf("[INFO] app_status   = %d \n", app_status);
     printf("[INFO] spike_status = %d \n", spike_status);
     printf("[INFO] n_rows       = %d \n", n_rows);
     printf("[INFO] n_cols       = %d \n", n_cols);
     printf("[INFO] n_channels   = %d \n", n_channels);
     printf("[INFO] data         = 0x%ux \n", data);
+    printf("[INFO] ------------------------------------\n");
   }
   // Create image and push values
   for(unsigned int i = 0; i < n_rows; i++){
@@ -165,6 +152,174 @@ void sim_t::show_monitor(uint32_t base, bool verbose)
   }
   cv::imshow("monitor", new_preview_image);
   cv::waitKey(IMSHOW_TIMEOUT);
+}
+
+void sim_t::show_oscillo(uint32_t base, bool verbose)
+{
+  // Byte length of Input_signals
+  #define INPUT_BYTES       1
+
+  // Modify this to handle the number of bytes of the output signal
+  // As saved in oscillo.s output signal section
+  #define OUTPUT_BYTES      1
+  
+  // If you would like to shift the Output Signal left before plotting then put this here
+  // Useful for high values signals
+  // Or for comparison with other signals.
+  #define OUTPUT_VIS_SHIFT  0
+
+  // Window WIDTH and HEIGHT
+  #define HORIZONTAL    1100
+  #define VERTICAL      500
+
+  // If you want to keep the X axis (temps) moving (the signal is represented with real-time in X axis)
+  // then turn this to 1 
+  #define MOVING_T      0
+
+  // When app-status == 0x00 this means you shut-down the signal plotter
+  // If you would like that the signal plotter's windows stays open and preserve the last samples
+  // then turn this to 1
+  #define PRESERVE_LAST_SAMPLES 0
+
+  std::vector<std::pair<float, float>> in_signal_data, out_signal_data;
+  static uint32_t in_signal_t, out_signal_t;
+  mmu_t* mmu = debug_mmu;
+
+  uint32_t pt_app_status = base;
+  uint32_t pt_spike_status = base+1;
+  uint32_t pt_n_rows = base+2;
+  uint32_t pt_data = base+4;
+
+  uint8_t app_status = mmu->load_uint8(pt_app_status);
+  uint8_t spike_status = mmu->load_uint8(pt_spike_status);
+
+  if(!(app_status & 0x03)) // if no input && no output
+  { 
+    in_signal_data.clear();
+    out_signal_data.clear();
+    
+    #if (!PRESERVE_LAST_SAMPLES)
+      cv::destroyAllWindows();
+    #endif
+    
+    return ;
+  }else{
+
+    uint16_t in_n_rows = mmu->load_uint16(pt_n_rows);
+    uint8_t in_data = mmu->load_uint8(pt_data);
+
+    if(verbose){
+      printf("[INFO] ------------------------------------\n"
+             "[INFO] >> At 0x%x = 0x%lx \n", base, my_get_mem(base));
+      printf("[INFO] app_status   = 0x%x \n", app_status);
+      printf("[INFO] spike_status = 0x%x \n", spike_status);
+    }
+
+    if(app_status & 0x01) // Input valid
+    {
+      if(verbose){
+        printf("[INFO / INPUT] ------------------------------------\n");
+        printf("[INFO / INPUT] in_n_rows       = %d \n", in_n_rows);
+        printf("[INFO / INPUT] in_data[0]      = 0x%x \n", in_data);
+      }
+
+      uint32_t actual_val = 0;
+      #if (!MOVING_T)
+      in_signal_t = 0;
+      #endif
+
+      for(unsigned int i = 0; i < in_n_rows*INPUT_BYTES; i += INPUT_BYTES){
+        // if (signal_t >= 300 ){
+        //   signal_data.erase(signal_data.begin());
+        // }
+        for(int j = 0; j<INPUT_BYTES; j++){
+          actual_val |= (((uint32_t)(mmu->load_uint8(pt_data + i+ j))) << (j*8));
+        }
+
+        in_signal_data.push_back({(float)in_signal_t, (float)(actual_val)}); 
+        //in_signal_data.push_back({(float)in_signal_t, (float)(0xFF & mmu->load_uint8(pt_data + i))});
+        /* TO DO: (maybe ?) shift signal to permit writing directly in the first element  */
+        in_signal_t++;
+        actual_val = 0;
+      }
+    }else{ // Clear Input
+      in_signal_data.clear();
+    }
+
+    if(app_status & 0x02) // Output valid
+    {
+      //uint32_t out_n_rows = mmu->load_uint16(pt_data + in_n_rows);
+      uint16_t out_n_rows = (0xFF & mmu->load_uint8(pt_data + in_n_rows)) |
+                            (0xFF & mmu->load_uint8(pt_data + in_n_rows + 1)) << 8;
+      uint8_t out_data = mmu->load_uint8(pt_data + in_n_rows + 2);
+      uint32_t actual_val = 0;
+      #if (!MOVING_T)
+      out_signal_t = 0;
+      #endif
+      if(verbose){  
+        printf("[INFO / OUTPUT] ------------------------------------\n");
+        printf("[INFO / OUTPUT] out_n_rows       = %d \n", out_n_rows);
+        printf("[INFO / OUTPUT] out_data[0]      = 0x%x \n", out_data);
+      }
+
+      for(unsigned int i = 0; i < out_n_rows*OUTPUT_BYTES; i+=OUTPUT_BYTES){
+        // if (out_signal_t >= 3000 ){
+        //    out_signal_data.erase(out_signal_data.begin());
+        // }
+        for(int j = 0; j<OUTPUT_BYTES; j++){
+          actual_val |= (((uint32_t)(mmu->load_uint8(pt_data + in_n_rows + 2 + i + j))) << (j*8));
+        }
+        // actual_val = (0xFF & mmu->load_uint8(pt_data + in_n_rows + 2 + i)) |
+        //              (0xFF & mmu->load_uint8(pt_data + in_n_rows + 2 + i+1)) << 8 |
+        //              (0xFF & mmu->load_uint8(pt_data + in_n_rows + 2 + i+2)) << 16 |
+        //              (0xFF & mmu->load_uint8(pt_data + in_n_rows + 2 + i+3)) << 24 ;
+
+        // printf("output_signal[ %d ] = 0x%x \n", i, actual_val);
+        out_signal_data.push_back({(float)out_signal_t, (float)(actual_val >> OUTPUT_VIS_SHIFT)});
+        out_signal_t++;
+        actual_val = 0;
+        /* TO DO: (maybe ?) shift signal to permit writing directly in the first element  */
+      }
+    }else{ // Clear Input
+      out_signal_data.clear();
+    }
+
+    // // Populate signal_data && refresh the oscilloscope
+    // for(unsigned int i = 0; i < n_rows; i++){
+    //   // if (signal_t >= 300 ){
+    //   //   signal_data.erase(signal_data.begin());
+    //   // }
+    //   signal_data.push_back({(float)signal_t, (float)(0xFF & mmu->load_uint8(pt_data + i))});
+    //   signal_t++;
+    //   /* TO DO: (maybe ?) shift signal to permit writing directly in the first element  */
+    // }
+
+    auto oscillo_name = "input-spike-oscillo";
+    cvplot::setWindowTitle(oscillo_name, "Spike Signal Plotter");
+    cvplot::resizeWindow(oscillo_name, HORIZONTAL, VERTICAL);
+    auto &view = cvplot::Window::current().view(oscillo_name);
+    auto &figure = cvplot::figure(oscillo_name);
+
+
+    figure.square(true);
+    figure.origin(false, false);
+    figure.series("Input Signal")
+            .set(in_signal_data)
+            .type(cvplot::DotLine)
+            .color(cvplot::Blue);
+
+    figure.series("Output Signal")
+        .set(out_signal_data)
+        .type(cvplot::DotLine)
+        .color(cvplot::Red);
+
+    figure.show(false);
+    view.finish();
+    view.flush();
+
+  }
+
+
 }
 
 void sim_t::interactive_show_monitor(const std::string& cmd, const std::vector<std::string>& args)
@@ -201,6 +356,7 @@ void sim_t::interactive_show_monitor(const std::string& cmd, const std::vector<s
   fprintf(stderr, "[INFO] n_cols       = %d \n", n_cols);
   fprintf(stderr, "[INFO] n_channels   = %d \n", n_channels);
   fprintf(stderr, "[INFO] data         = 0x%ux \n", data);
+  fprintf(stderr, "[INFO] ------------------------------------\n");
 
   for(unsigned int i = 0; i < n_rows; i++){
     for (unsigned int j = 0; j < n_cols; j++) {
@@ -214,17 +370,17 @@ void sim_t::interactive_show_monitor(const std::string& cmd, const std::vector<s
   cv::destroyWindow("monitor_d");
 }
 
-#endif
 
 void sim_t::main()
 {
   bool monitor_verbose = true;
+  bool oscillo_verbose = true;
 
   if (!debug && log)
     set_procs_debug(true);
 
   while (!done())
-  {
+  { 
     if (debug || ctrlc_pressed)
       interactive();
     else
@@ -232,13 +388,18 @@ void sim_t::main()
     if (remote_bitbang) {
       remote_bitbang->tick();
     }
+
     if (monitor){
       show_monitor(monitor_base, monitor_verbose);
       monitor_verbose = false;
     }  
+    if (oscillo){
+      show_oscillo(oscillo_base, oscillo_verbose);
+      cv::waitKey(OSCILLO_TIMEOUT);
+      oscillo_verbose = false;
+    } 
   }
 }
-
 
 int sim_t::run()
 {
@@ -282,17 +443,47 @@ void sim_t::set_log(bool value)
 void sim_t::set_monitor(bool value, uint32_t base_address)
 {
   // monitor = value;
+  if (base_address == 0xffffffff)
+  {
+    monitor_base = -1;
+    monitor = false;
+    printf("[INFO] >> Monitor deactivated.\n");
+    return;
+  }
   if(monitor){
+    monitor = true;
     if(base_address < 0x80000000)
-      monitor_base = 0x81000000;
+      monitor_base = 0x81000000;      
     else
       monitor_base = base_address;
 
-    printf("[INFO] >> Monitoring 0x%x \n", monitor_base);
+    printf("[INFO] >> Monitor at 0x%x \n", monitor_base);
 
     garbage = cv::Mat::zeros(cv::Size(COLS, ROWS), CV_8UC1);
   }
 }
+
+void sim_t::set_oscillo(bool value, uint32_t base_address)
+{
+  if (base_address == 0xffffffff)
+  {
+    oscillo_base = -1;
+    oscillo = false;
+    printf("[INFO] >> Oscillator deactivated.\n");
+    return;
+  }
+
+  if(value){
+    oscillo = true;
+    if(base_address < 0x80000000)
+      oscillo_base = 0x82000000;
+    else
+      oscillo_base = base_address;
+
+    printf("[INFO] >> Oscillator at 0x%x \n", oscillo_base);
+  }
+}
+
 
 void sim_t::set_histogram(bool value)
 {

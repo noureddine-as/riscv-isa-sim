@@ -19,7 +19,8 @@
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
-
+#include "opencv2/opencv.hpp"
+#include "cvplot.h"
 
 void test_opencv()
 {
@@ -29,6 +30,42 @@ void test_opencv()
   //cv::cvtColor(src_image, src_image, CV_BGR2GRAY);
   cv::imshow("monitor", src_image);
   cv::waitKey(0);
+
+  std::vector<std::pair<float, float>> data;
+  std::vector<float> values;
+
+  auto name = "signal-monitor";
+  cvplot::setWindowTitle(name, "Spike Signal Monitor");
+  cvplot::resizeWindow(name, 800, 400);
+  auto &view = cvplot::Window::current().view(name);
+  auto &figure = cvplot::figure(name);
+  figure.square(true);
+  figure.origin(false, false);
+
+
+  for (int i = 0; i < 300; i++) {
+    if (i >= 200 ){
+      data.erase(data.begin());
+    }
+
+    data.push_back({(float)i/10, cos(i * 0.1f ) * 5});
+
+    figure.series("Input Signal")
+        .set(data)
+        .type(cvplot::DotLine)
+        .color(cvplot::Red);
+
+
+    figure.show(false);
+    view.finish();
+    view.flush();
+
+    cv::waitKey(20);
+
+  }
+
+  cv::waitKey(0);
+
 }
 #endif
 
@@ -60,7 +97,9 @@ static void help()
       "<bits> wide accesses [default 0]\n");
   fprintf(stderr, "  --debug-auth          Debug module requires debugger to authenticate\n");
   fprintf(stderr, "  --monitor=<base_addr> Monitors the program beginning from base_addr\n"
-                  "                        This should be written in Hexa. (e.g. 0x81000000)");
+                  "                        This should be written in Hexa. (e.g. 0x81000000)\n");
+  fprintf(stderr, "  --oscillo=<base_addr> Attach a visual oscilloscope beginning from addr \n"
+                  "                        This should be written in Hexa. (e.g. 0x82000000)");
 
   #if (USE_OPENCV)
     test_opencv();
@@ -107,6 +146,7 @@ int main(int argc, char** argv)
   bool histogram = false;
   bool log = false;
   bool monitor = false; uint32_t monitor_base = -1; 
+  bool oscillo = false; uint32_t oscillo_base = -1;
   bool dump_dts = false;
   size_t nprocs = 1;
   reg_t start_pc = reg_t(-1);
@@ -166,7 +206,8 @@ int main(int argc, char** argv)
       [&](const char* s){max_bus_master_bits = atoi(s);});
   parser.option(0, "debug-auth", 0,
       [&](const char* s){require_authentication = true;});
-  parser.option(0, "monitor", 1, [&](const char* s){monitor = true; monitor_base = strtoul(s, NULL, 0);});; //atoi(s);});
+  parser.option(0, "monitor", 1, [&](const char* s){monitor = true; monitor_base = strtoul(s, NULL, 0);});//atoi(s);});
+  parser.option(0, "oscillo", 1, [&](const char* s){oscillo = true; oscillo_base = strtoul(s, NULL, 0);});; //atoi(s);});
 
   auto argv1 = parser.parse(argv);
   std::vector<std::string> htif_args(argv1, (const char*const*)argv + argc);
@@ -206,7 +247,7 @@ int main(int argc, char** argv)
   //#define DEFAULT_MONITOR_BASE  0x81000000
   //monitor_base = (monitor_base & 0x80000000 ? monitor_base :  DEFAULT_MONITOR_BASE);
   s.set_monitor(monitor, monitor_base);
- 
+  s.set_oscillo(oscillo, oscillo_base);
 
   return s.run();
 }
