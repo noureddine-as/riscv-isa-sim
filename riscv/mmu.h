@@ -56,6 +56,10 @@ public:
   mmu_t(simif_t* sim, processor_t* proc);
   ~mmu_t();
 
+  #define N_COEFFS   32
+  reg_t fir_rocc_regfile[N_COEFFS + 3];
+  std::vector<reg_t> fir_rocc_fifo;
+
   inline reg_t misaligned_load(reg_t addr, size_t size)
   {
 #ifdef RISCV_ENABLE_MISALIGNED

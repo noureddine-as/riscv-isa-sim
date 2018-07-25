@@ -300,7 +300,15 @@ riscv_insn_list = \
 	wfi \
 	xor \
 	xori \
-
+	fir_f0_move \
+	fir_f1_fifo \
+	fir_f2_store \
+	fir_f3 \
+	fir_f4 \
+	fir_f5 \
+	fir_f6 \
+	fir_f7 \
+	
 riscv_gen_srcs = \
 	$(addsuffix .cc,$(riscv_insn_list))
 

@@ -161,7 +161,7 @@ void sim_t::show_oscillo(uint32_t base, bool verbose)
 
   // Modify this to handle the number of bytes of the output signal
   // As saved in oscillo.s output signal section
-  #define OUTPUT_BYTES      1
+  #define OUTPUT_BYTES      2
   
   // If you would like to shift the Output Signal left before plotting then put this here
   // Useful for high values signals
