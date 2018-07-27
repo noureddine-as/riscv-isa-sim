@@ -28,12 +28,7 @@ else if(RS2 == (N_COEFFS + 1)){
 		fprintf(stderr, "[SPIKE / FIR RoCC]        --->>  FIR enabled. \n");
 		#endif
 
-		// TO DO
-		// Begin the calculations here.
-
         uint64_t fir_res = 0;
-        
-
         int j, approx_counter=0;
         for(j=0; j < N_COEFFS; j++)
         {
@@ -43,47 +38,36 @@ else if(RS2 == (N_COEFFS + 1)){
         	// ...
         	// FIFO[ N_COEFFS - 2 ] = t - 1
         	// FIFO[ N_COEFFS - 1 ] = t
+	        
+	        uint16_t H_now, H_last, X_now, X_last, Precision_Mask;
 
-        	if((/* j > 0 && */ j < N_COEFFS-1) && 
-        	   ((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1) & (~MMU.fir_rocc_regfile[N_COEFFS]))
-        	    == (MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j) & (~MMU.fir_rocc_regfile[N_COEFFS])))){
+        	X_now = (uint16_t)(((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j) >> (16 * 3))) & 0xFFFF);
+        	H_now = (uint16_t)((MMU.fir_rocc_regfile[j] >> (16 * 3)) & 0xFFFF);
 
-        		fir_res = (uint64_t)(fir_res + (MMU.fir_rocc_regfile[j] + MMU.fir_rocc_regfile[j+1])*MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j));
-				// fprintf(stderr, "[SPIKE / FIR RoCC]        --->>  APPROXIMATION at Sample= %d \t- j = %d \t and j+1 = %d \n", samples_counter, j, j+1);
-    //     		fprintf(stderr, "[SPIKE / FIR RoCC]               sple[j]     = %d \t sple[j+1]     = %d \n", MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j),
-    //     																							  MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1));
-    //     		fprintf(stderr, "[SPIKE / FIR RoCC]               AxC_sple[j] = %d \t AxC_sple[j+1] = %d \n",
-    //     													(MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1) & (~(MMU.fir_rocc_regfile[N_COEFFS]))),
-    //     													(MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j)     & (~(MMU.fir_rocc_regfile[N_COEFFS]))));
+        	if(j < N_COEFFS-1)
+        	{ 
+	        	H_last = (uint16_t)((MMU.fir_rocc_regfile[j+1] >> (16 * 3)) & 0xFFFF);
+	        	X_last = (uint16_t)(((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1) >> (16 * 3))) & 0xFFFF);
 
-    //     		fprintf(stderr, "[SPIKE / FIR RoCC]               Applied precision mask = 0x%x \n", ~MMU.fir_rocc_regfile[N_COEFFS]);
+	        	Precision_Mask = (uint16_t)((~MMU.fir_rocc_regfile[N_COEFFS]) & 0xFFFF); 
+    	
+    	   	    if( (Precision_Mask & X_now) == (Precision_Mask & X_last)){
+					fir_res +=  (uint64_t)(X_now*(H_now + H_last));
 
-        		j++; // Advance the pointer, since we used two coeffs
-        		approx_counter++;
+	        		j++; // Advance the pointer, since we used two coeffs
+	        		approx_counter++;
+    	   	    }else{
+					fir_res +=  (uint64_t)(X_now * H_now);
+    	   	    }
 
         	}else{
-    	    	fir_res = (uint64_t)(fir_res + MMU.fir_rocc_regfile[j]*MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j));
+				
+				fir_res +=  (uint64_t)(X_now * H_now);
            	}
-
-
-       
         }
-       	// if(approx_counter)
-    		fprintf(stderr, "[SPIKE / FIR RoCC]               [Sample %d ] Number of approximations (1 * instead of 2) is %d\n", samples_counter, approx_counter);
-        samples_counter++;
-
-
-        // int j , prev_sample;
-        // for(j= N_COEFFS-1; j > 0; j--)
-        // {
-        // 	// if((j != 0) && 
-        // 	//    ((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1) & MMU.fir_rocc_regfile[N_COEFFS + 1])
-        // 	//     == (MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j) & MMU.fir_rocc_regfile[N_COEFFS + 1])) )
-
-        // 	fir_res = (uint64_t)(fir_res + MMU.fir_rocc_regfile[N_COEFFS-1 - j]*MMU.fir_rocc_fifo.at(j));
-       
-        // }
-
+		// if(approx_counter)
+		fprintf(stderr, "[SPIKE / FIR RoCC]               [Sample %d ] Number of approximations (1 * instead of 2) is %d\n", samples_counter, approx_counter);
+		samples_counter++;
 
 	#if(VERBOSITY)
         for(j=0; j < MMU.fir_rocc_fifo.size(); j++)
