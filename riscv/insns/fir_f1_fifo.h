@@ -1,5 +1,9 @@
 #define N_COEFFS   32
 
+#define VERBOSITY  0
+	#if(VERBOSITY)
+	#endif
+
 if(MMU.fir_rocc_fifo.size() < N_COEFFS)
 	MMU.fir_rocc_fifo.push_back(RS1);
 else
@@ -11,8 +15,9 @@ else
 	// New values are those in the END. You may have to invert your indexes in the original FIR algo
 
 }
-
+	#if(VERBOSITY)
 fprintf(stderr, "[SPIKE / FIR RoCC]     RS1 (0x%08x) pushed in the FIR fifo. \n", RS1);
+	#endif
 
 // Print all fifo elements
 /*

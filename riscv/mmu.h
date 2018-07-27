@@ -58,7 +58,7 @@ public:
 
   #define N_COEFFS   32
   reg_t fir_rocc_regfile[N_COEFFS + 3];
-  std::vector<reg_t> fir_rocc_fifo;
+  std::vector<reg_t> fir_rocc_fifo{std::vector<reg_t>(N_COEFFS, 0)};
 
   inline reg_t misaligned_load(reg_t addr, size_t size)
   {

@@ -750,6 +750,8 @@
 // #define MATCH_CUSTOM3_RD_RS1_RS2 0x707b
 // #define MASK_CUSTOM3_RD_RS1_RS2  0x707f
 
+
+// THIS WORKS WITH X_R_R instruction
 #define FIR_OPCODE 			0x7b
 #define MASK_FIR_RS1_RS2  	0xfe00707f
 #define MATCH_FIR_F0_MOVE 	0x0000307b
