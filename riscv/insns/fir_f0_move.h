@@ -66,10 +66,10 @@ else if(RS2 == (N_COEFFS + 1)){
            	}
         }
 		// if(approx_counter)
-		fprintf(stderr, "[SPIKE / FIR RoCC]               [Sample %d ] Number of approximations (1 * instead of 2) is %d\n", samples_counter, approx_counter);
 		samples_counter++;
-
 	#if(VERBOSITY)
+		fprintf(stderr, "[SPIKE / FIR RoCC]               [Sample %d ] Number of approximations (1 * instead of 2) is %d\n", samples_counter, approx_counter);
+
         for(j=0; j < MMU.fir_rocc_fifo.size(); j++)
         {
         	fprintf(stderr, "FIFO[ %d ] = 0x%08x \n", MMU.fir_rocc_fifo.size() - 1 - j, MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j));
