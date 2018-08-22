@@ -300,9 +300,9 @@ riscv_insn_list = \
 	wfi \
 	xor \
 	xori \
-	fir_f0_move \
-	fir_f1_fifo \
-	fir_f2_store \
+	fir_move \
+	fir_fifo_push \
+	fir_store \
 	fir_f3 \
 	fir_f4 \
 	fir_f5 \
