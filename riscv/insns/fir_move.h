@@ -49,7 +49,8 @@ else if(RS2 == (N_COEFFS + 1)){
 	        	H_last = (uint16_t)((MMU.fir_rocc_regfile[j+1] >> (16 * 3)) & 0xFFFF);
 	        	X_last = (uint16_t)(((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j - 1) >> (16 * 3))) & 0xFFFF);
 
-	        	Precision_Mask = (uint16_t)((~MMU.fir_rocc_regfile[N_COEFFS]) & 0xFFFF); 
+	        	//Precision_Mask = (uint16_t)((~MMU.fir_rocc_regfile[N_COEFFS]) & 0xFFFF); 
+    			Precision_Mask = (uint16_t)((~((MMU.fir_rocc_regfile[N_COEFFS]>> (16 * 3)) & 0xFFFF))); 
     	
     	   	    if( (Precision_Mask & X_now) == (Precision_Mask & X_last)){
 					fir_res +=  (uint64_t)(X_now*(H_now + H_last));
@@ -72,7 +73,7 @@ else if(RS2 == (N_COEFFS + 1)){
 
         for(j=0; j < MMU.fir_rocc_fifo.size(); j++)
         {
-        	fprintf(stderr, "FIFO[ %d ] = 0x%08x \n", MMU.fir_rocc_fifo.size() - 1 - j, MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j));
+        	fprintf(stderr, "FIFO[ %d ] = 0x%02x \n", MMU.fir_rocc_fifo.size() - 1 - j, ((MMU.fir_rocc_fifo.at(MMU.fir_rocc_fifo.size() - 1 - j) >> (16 * 3)) & 0xFFFF));
         }
 	#endif
 
@@ -83,7 +84,7 @@ else if(RS2 == (N_COEFFS + 1)){
         MMU.fir_rocc_regfile[N_COEFFS + 1] &= 0xFFFFFFFFFFFFFFFE; // ENABLE_BIT = 0
 		MMU.fir_rocc_regfile[N_COEFFS + 1] |= (1 << 31); // DONE_BIT = 1
 	#if(VERBOSITY)
-		fprintf(stderr, "[SPIKE / FIR RoCC]        --->>  Calculated Yn = 0x%08x \n", fir_res);
+		fprintf(stderr, "[SPIKE / FIR RoCC]        --->>  Calculated Yn = 0x%02x \n", ((fir_res >> (4 * 3)) & 0xFFFF)); // >> (16 * 3)) & 0xFFFF));
 	#endif
 
 	}
